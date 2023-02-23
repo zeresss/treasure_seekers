@@ -1,12 +1,17 @@
 import pygame
+from math import sin
 
 from support import import_folder
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, collision_sprites):
+    def __init__(self, pos, collision_sprites, change_health):
         super().__init__()
         self.collision_sprites = collision_sprites
+
+        self.change_health = change_health
+        self.hurt_time = 0
+        self.invincible = False
 
         self.direction = pygame.math.Vector2()
         self.status, self.facing = 'idle', 'right'
@@ -62,6 +67,14 @@ class Player(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(animation[int(self.animation_frame)], True, False)
             self.rect.bottomright = self.collision_rect.bottomright
 
+        if self.invincible:
+            if sin(pygame.time.get_ticks()) >= 0:
+                self.image.set_alpha(255)
+            else:
+                self.image.set_alpha(0)
+        else:
+            self.image.set_alpha(255)
+
         self.rect = self.image.get_rect(midbottom=self.rect.midbottom)
 
     def horizontal_collisions(self):
@@ -80,7 +93,6 @@ class Player(pygame.sprite.Sprite):
                 if self.direction.y < 0:
                     self.collision_rect.top = sprite.rect.bottom
                     self.direction.y = 0
-                    self.on_ceiling = True
                 elif self.direction.y > 0:
                     self.collision_rect.bottom = sprite.rect.top
                     self.direction.y = 0
@@ -88,12 +100,21 @@ class Player(pygame.sprite.Sprite):
 
         if self.on_ground and self.direction.y < 0 or self.direction.y > 1:
             self.on_ground = False
-        if self.on_ceiling and self.direction.y > 1:
-            self.on_ceiling = False
 
     def apply_gravity(self):
         self.direction.y += 0.8
         self.collision_rect.y += self.direction.y
+
+    def get_damage(self):
+        if not self.invincible:
+            self.change_health(-10)
+            self.invincible = True
+            self.hurt_time = pygame.time.get_ticks()
+
+    def invincibility_timer(self):
+        if self.invincible:
+            if pygame.time.get_ticks() - self.hurt_time >= 500:
+                self.invincible = False
 
     def update(self):
         self.get_input()
@@ -102,3 +123,4 @@ class Player(pygame.sprite.Sprite):
         self.horizontal_collisions()
         self.apply_gravity()
         self.vertical_collisions()
+        self.invincibility_timer()

@@ -8,6 +8,7 @@ from support import import_folder
 class Sky:
     def __init__(self, surface, height, horizon, style):
         self.display_surface = surface
+
         self.height = height
         self.horizon = horizon
         self.style = style

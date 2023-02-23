@@ -4,9 +4,9 @@ from support import import_folder
 
 
 class ParticleEffect(pygame.sprite.Sprite):
-    def __init__(self, pos, type, flipped=False):
+    def __init__(self, pos, path, flipped=False):
         super().__init__()
-        self.frames = import_folder(f'./data/player/particles/{type}', flipped)
+        self.frames = import_folder(path, flipped)
         self.animation_frame = 0
 
         self.image = self.frames[self.animation_frame]

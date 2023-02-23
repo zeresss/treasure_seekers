@@ -9,14 +9,18 @@ from enemy import Enemy
 from camera import CameraGroup
 from particles import ParticleEffect
 from decorations import Sky
+from collectables import Collectable
 
 
 class Level:
-    def __init__(self, surface, current_level, unlock, create_overworld):
+    def __init__(self, surface, current_level, unlock, create_overworld, change_coins, change_health):
         self.display_surface = surface
+
         self.current_level = current_level
         self.new_max_level = unlock
         self.create_overworld = create_overworld
+
+        self.change_coins = change_coins
 
         self.terrain_tile_list = import_cut_graphics('./data/terrain/terrain tiles.png')
         self.grass_tile_list = import_cut_graphics('./data/decorations/grass.png')
@@ -44,7 +48,7 @@ class Level:
 
         self.player = pygame.sprite.GroupSingle()
         self.goal = pygame.sprite.Group()
-        self.player_setup(import_csv_layout(path + 'player.csv'))
+        self.player_setup(import_csv_layout(path + 'player.csv'), change_health)
 
         self.last_status = self.player.sprite.status
         self.last_facing = self.player.sprite.facing
@@ -83,9 +87,9 @@ class Level:
 
                     elif type == 'coins':
                         if value == '0':
-                            sprite = AnimatedTile((x + 16, y + 16), './data/coins/gold')
+                            sprite = Collectable((x + 16, y + 16), './data/coins/gold', 3)
                         elif value == '1':
-                            sprite = AnimatedTile((x + 16, y + 16), './data/coins/silver')
+                            sprite = Collectable((x + 16, y + 16), './data/coins/silver', 1)
 
                     elif type == 'palms':
                         if value == '2':
@@ -106,7 +110,7 @@ class Level:
 
         return sprite_group
 
-    def player_setup(self, layout):
+    def player_setup(self, layout, change_health):
         for row_index, row in enumerate(layout):
             for col_index, val in enumerate(row):
                 x = col_index * tile_size
@@ -114,7 +118,7 @@ class Level:
 
                 if val == '0':
                     sprite = Player((x, y), self.terrain_sprites.sprites() + self.crate_sprites.sprites() +
-                                    self.palm_sprites.sprites())
+                                    self.palm_sprites.sprites(), change_health)
                     self.player.add(sprite)
 
                 if val == '1':
@@ -147,7 +151,7 @@ class Level:
                 offset = pygame.math.Vector2(-14, -13)
             else:
                 offset = pygame.math.Vector2(14, -13)
-            particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset, 'jump')
+            particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset, './data/player/particles/jump')
 
             self.visible_sprites.add(particle_effect)
             self.active_sprites.add(particle_effect)
@@ -157,7 +161,7 @@ class Level:
                 offset = pygame.math.Vector2(-14, -20)
             else:
                 offset = pygame.math.Vector2(14, -20)
-            particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset, 'land')
+            particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset, './data/player/particles/land')
 
             self.visible_sprites.add(particle_effect)
             self.active_sprites.add(particle_effect)
@@ -166,10 +170,12 @@ class Level:
                 and self.last_status == 'walk' and self.player.sprite.facing != self.last_facing:
             if self.player.sprite.facing == 'right':
                 offset = pygame.math.Vector2(-30, -5)
-                particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset, 'walk')
+                particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset,
+                                                 './data/player/particles/walk')
             else:
                 offset = pygame.math.Vector2(30, -5)
-                particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset, 'walk', True)
+                particle_effect = ParticleEffect(self.player.sprite.rect.midbottom + offset,
+                                                 './data/player/particles/walk', True)
 
             self.visible_sprites.add(particle_effect)
             self.active_sprites.add(particle_effect)
@@ -179,16 +185,39 @@ class Level:
 
     def check_drown(self):
         if self.player.sprite.rect.top > self.pixel_level_height:
-            self.create_overworld(self.current_level, self.current_level)
+            self.create_overworld(0, self.current_level, True)
 
     def check_win(self):
         if pygame.sprite.spritecollide(self.player.sprite, self.goal, False):
             self.create_overworld(self.current_level, self.new_max_level)
+
+    def check_coin_receiving(self):
+        collided_coins = pygame.sprite.spritecollide(self.player.sprite, self.coin_sprites, True)
+        for coin in collided_coins:
+            self.change_coins(coin.value)
+
+    def check_enemy_kill(self):
+        collided_enemies = pygame.sprite.spritecollide(self.player.sprite, self.enemy_sprites, False)
+        for enemy in collided_enemies:
+            if enemy.rect.top < self.player.sprite.rect.bottom < enemy.rect.centery\
+                    and self.player.sprite.direction.y >= 0:
+                self.player.sprite.direction.y = -14
+                enemy.kill()
+
+                explosion_sprite = ParticleEffect(enemy.rect.center, './data/enemy/explosion')
+                self.visible_sprites.add(explosion_sprite)
+                self.active_sprites.add(explosion_sprite)
+            else:
+                self.player.sprite.get_damage()
+
 
     def run(self):
         self.sky.draw()
         self.active_sprites.update()
         self.visible_sprites.draw(self.player.sprite)
         self.draw_player_particles()
+
         self.check_drown()
         self.check_win()
+        self.check_coin_receiving()
+        self.check_enemy_kill()

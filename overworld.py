@@ -14,7 +14,7 @@ class Node(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=pos)
 
         self.status = status
-        self.stop_zone = pygame.Rect(self.rect.centerx - 4, self.rect.centery - 4, 8, 8)
+        self.stop_zone = pygame.Rect(self.rect.centerx - 4, self.rect.centery - 4, 10, 10)
 
     def animate(self):
         self.animation_frame += 0.1
@@ -45,8 +45,8 @@ class PlayerIcon(pygame.sprite.Sprite):
 class Overworld:
     def __init__(self, surface, current_level, max_level, create_level):
         self.display_surface = surface
+
         self.direction = pygame.Vector2(0, 0)
-        self.key_cooldown = 1
         self.sky = Sky(surface, 12, 8, 'overworld')
         self.nodes_pos = [(110, 400), (300, 220), (480, 610), (610, 350), (880, 210), (1050, 400)]
 
@@ -60,6 +60,8 @@ class Overworld:
         player_icon_sprite = PlayerIcon(self.nodes.sprites()[self.current_level].rect.center)
         self.player_icon.add(player_icon_sprite)
 
+        self.start_time = pygame.time.get_ticks()
+
     def nodes_setup(self):
         self.nodes = pygame.sprite.Group()
         for node_index, node_pos in enumerate(self.nodes_pos):
@@ -72,7 +74,7 @@ class Overworld:
     def get_input(self):
         keys = pygame.key.get_pressed()
 
-        if not self.direction and self.key_cooldown >= 5:
+        if not self.direction and pygame.time.get_ticks() - self.start_time >= 100:
             if keys[pygame.K_d] and self.current_level < self.max_level:
                 self.direction = self.get_movement_data(1)
                 self.current_level += 1
@@ -81,8 +83,7 @@ class Overworld:
                 self.current_level -= 1
             elif keys[pygame.K_SPACE]:
                 self.create_level(self.current_level)
-
-        self.key_cooldown += 1
+            self.key_press_time = pygame.time.get_ticks()
 
     def get_movement_data(self, movement):
         start = pygame.math.Vector2(self.nodes.sprites()[self.current_level].rect.center)
