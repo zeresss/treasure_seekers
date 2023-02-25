@@ -16,6 +16,11 @@ class Node(pygame.sprite.Sprite):
         self.status = status
         self.stop_zone = pygame.Rect(self.rect.centerx - 4, self.rect.centery - 4, 10, 10)
 
+        if self.status == 'locked':
+            dark = self.image.copy()
+            dark.fill('black', None, pygame.BLEND_RGBA_MULT)
+            self.image.blit(dark, (0, 0))
+
     def animate(self):
         self.animation_frame += 0.1
         if self.animation_frame >= len(self.frames):
@@ -25,10 +30,6 @@ class Node(pygame.sprite.Sprite):
     def update(self):
         if self.status == 'available':
             self.animate()
-        else:
-            dark = self.image.copy()
-            dark.fill('black', None, pygame.BLEND_RGBA_MULT)
-            self.image.blit(dark, (0, 0))
 
 
 class PlayerIcon(pygame.sprite.Sprite):
@@ -55,10 +56,7 @@ class Overworld:
         self.create_level = create_level
 
         self.nodes_setup()
-
-        self.player_icon = pygame.sprite.GroupSingle()
-        player_icon_sprite = PlayerIcon(self.nodes.sprites()[self.current_level].rect.center)
-        self.player_icon.add(player_icon_sprite)
+        self.player_icon_setup()
 
         self.start_time = pygame.time.get_ticks()
 
@@ -70,6 +68,11 @@ class Overworld:
             else:
                 node_sprite = Node(node_pos, 'locked', f'./data/overworld/{node_index}')
             self.nodes.add(node_sprite)
+
+    def player_icon_setup(self):
+        self.player_icon = pygame.sprite.GroupSingle()
+        player_icon_sprite = PlayerIcon(self.nodes.sprites()[self.current_level].rect.center)
+        self.player_icon.add(player_icon_sprite)
 
     def get_input(self):
         keys = pygame.key.get_pressed()
@@ -83,14 +86,13 @@ class Overworld:
                 self.current_level -= 1
             elif keys[pygame.K_SPACE]:
                 self.create_level(self.current_level)
-            self.key_press_time = pygame.time.get_ticks()
 
     def get_movement_data(self, movement):
         start = pygame.math.Vector2(self.nodes.sprites()[self.current_level].rect.center)
         end = pygame.math.Vector2(self.nodes.sprites()[self.current_level + movement].rect.center)
         return (end - start).normalize()
 
-    def update_icon_pos(self):
+    def update_player_icon_pos(self):
         if self.direction:
             self.player_icon.sprite.pos += self.direction * 8
             target_node = self.nodes.sprites()[self.current_level]
@@ -99,7 +101,6 @@ class Overworld:
 
     def draw_paths(self):
         points = [node_pos for node_index, node_pos in enumerate(self.nodes_pos) if node_index <= self.max_level]
-
         if self.max_level > 0:
             pygame.draw.lines(self.display_surface, '#a04f45', False, points, 6)
 
@@ -109,6 +110,6 @@ class Overworld:
         self.draw_paths()
         self.nodes.update()
         self.nodes.draw(self.display_surface)
-        self.update_icon_pos()
+        self.update_player_icon_pos()
         self.player_icon.update()
         self.player_icon.draw(self.display_surface)

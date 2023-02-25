@@ -47,7 +47,7 @@ class Game:
     def change_health(self, amount):
         self.current_health += amount
 
-    def check_game_over(self):
+    def check_lack_of_health(self):
         if self.current_health <= 0:
             self.max_level = 0
             self.current_health = 100
@@ -63,7 +63,7 @@ class Game:
             self.level.run()
             self.ui.show_health(self.current_health, self.max_health)
             self.ui.show_coins(self.coins)
-            self.check_game_over()
+            self.check_lack_of_health()
 
 
 pygame.init()

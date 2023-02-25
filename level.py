@@ -20,8 +20,6 @@ class Level:
         self.new_max_level = unlock
         self.create_overworld = create_overworld
 
-        self.change_coins = change_coins
-
         self.terrain_tile_list = import_cut_graphics('./data/terrain/terrain tiles.png')
         self.grass_tile_list = import_cut_graphics('./data/decorations/grass.png')
 
@@ -49,6 +47,7 @@ class Level:
         self.player = pygame.sprite.GroupSingle()
         self.goal = pygame.sprite.Group()
         self.player_setup(import_csv_layout(path + 'player.csv'), change_health)
+        self.change_coins = change_coins
 
         self.last_status = self.player.sprite.status
         self.last_facing = self.player.sprite.facing
@@ -191,7 +190,7 @@ class Level:
         if pygame.sprite.spritecollide(self.player.sprite, self.goal, False):
             self.create_overworld(self.current_level, self.new_max_level)
 
-    def check_coin_receiving(self):
+    def check_coin_receive(self):
         collided_coins = pygame.sprite.spritecollide(self.player.sprite, self.coin_sprites, True)
         for coin in collided_coins:
             self.change_coins(coin.value)
@@ -210,7 +209,6 @@ class Level:
             else:
                 self.player.sprite.get_damage()
 
-
     def run(self):
         self.sky.draw()
         self.active_sprites.update()
@@ -219,5 +217,5 @@ class Level:
 
         self.check_drown()
         self.check_win()
-        self.check_coin_receiving()
+        self.check_coin_receive()
         self.check_enemy_kill()
